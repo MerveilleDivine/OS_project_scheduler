@@ -3,11 +3,30 @@
 #include <fstream>
 #include <cstring>
 #include <stdexcept>
+#include <vector>
+
 
 using namespace std;
 
+// Structure for a process
+struct Process {
+  int burst_time;
+  int arrival_time;
+  int priority;
+};
+
+// Functions
+void select_scheduling_method(vector<Process>& processes);
+void run_preemptive_mode(const vector<Process>& processes);
+void run_non_preemptive_mode(const vector<Process>& processes);
+void result(const vector<Process>& processes);
+void end_program(const vector<Process>& processes, const string& output_file);
+void menu(vector<Process>& processes);
+
+
 //my_argc is the argument count and my_argv is the argument vector
 int main(int my_argc, char** my_argv) {
+
   // Initialize variables for input and output file names
   string input_file;
   string output_file;
@@ -28,34 +47,65 @@ int main(int my_argc, char** my_argv) {
       throw runtime_error("Failed to open input file: " + input_file);
     }
 
-    // Open the output file
-    ofstream output(output_file);
-    if (!output.is_open()) {
-      throw runtime_error("Failed to open output file: " + output_file);
+    // Read the data from the input file
+    vector<Process> processes;
+    while (input >> burst_time >> arrival_time >> priority) {
+      Process p;
+      p.burst_time = burst_time;
+      p.arrival_time = arrival_time;
+      p.priority = priority;
+      processes.push_back(p);
     }
+    // to close the input file
+    input.close();
 
-    // Print the input and output file names
-    cout << "Input file: " << input_file << endl;
-    cout << "Output file: " << output_file << endl;
+     // to display the menu to the user
+    menu(processes);
 
-    // Read from the input file and write to the output file
-    string line;
-    while (getline(input, line)) {
-      output << line << endl;
-    }
+    
+    
   } catch (const exception& e) {
-    // Exception handling code goes here
+    // Exception handling code
     cerr << "Error: " << e.what() << endl;
-    return 1;
+
   }
 
   return 0;
 
   /* to implement file from cmd line use
   ./nameOfTheFile.extension -f input.txt -o output.txt
-  don't forget to change the filename
+  change the filename
 */
-
 }
 
+void choose_scheduling_method(vector<Process>& processes) {
+  cout << "Please select a scheduling method: " << endl;
+  cout << "1. First Come, First Served Scheduling" << endl;
+  cout << "2. Shortest-Job-First Scheduling" << endl;
+  cout << "3. Priority Scheduling" << endl;
+  cout << "4. Round-Robin Scheduling" << endl;
+  cout << "5. No Scheduling (Press any other key to continue without scheduling)" << endl;
+
+  int scheduling_method;
+  cin >> scheduling_method;
+
+  switch (scheduling_method) {
+    case 1:
+      // First Come, First Served Scheduling
+      break;
+    case 2:
+      // Shortest-Job-First Scheduling
+      break;
+    case 3:
+      // Priority Scheduling
+      break;
+    case 4:
+      // Round-Robin Scheduling
+      break;
+    default:
+      // No Scheduling
+      break;
+  }
+}
+     
 
