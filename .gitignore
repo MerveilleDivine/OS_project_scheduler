@@ -1,0 +1,20 @@
+# Build outputs
+scheduler
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+*.out
+*.exe
+*.o
+*.obj
+
+# Generated reports
+output.txt
+results.txt
+*.log
+
+# Editor files
+.vscode/
+.idea/
+.DS_Store

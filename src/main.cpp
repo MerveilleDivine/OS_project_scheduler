@@ -1,0 +1,163 @@
+#include "Parser.h"
+#include "Reporter.h"
+#include "Scheduler.h"
+
+#include <cctype>
+#include <fstream>
+#include <iostream>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+namespace {
+string toLower(string value) {
+    for (size_t i = 0; i < value.size(); ++i) {
+        value[i] = static_cast<char>(tolower(value[i]));
+    }
+    return value;
+}
+
+void printHelp() {
+    cout << "CPU Scheduler Simulator" << endl;
+    cout << "Usage:" << endl;
+    cout << "  ./scheduler -f input.txt -o output.txt --algorithm fcfs" << endl;
+    cout << "  ./scheduler -f input.txt -o output.txt --algorithm rr --quantum 2" << endl;
+    cout << "  ./scheduler -f input.txt --compare --quantum 2" << endl;
+    cout << endl;
+    cout << "Algorithms: none, fcfs, sjf, priority, rr" << endl;
+}
+
+string normalizeAlgorithmName(const string& input) {
+    string value = toLower(input);
+
+    if (value == "1" || value == "fcfs" || value == "first-come-first-served") {
+        return "fcfs";
+    }
+    if (value == "2" || value == "sjf" || value == "shortest-job-first") {
+        return "sjf";
+    }
+    if (value == "3" || value == "priority") {
+        return "priority";
+    }
+    if (value == "4" || value == "rr" || value == "round-robin") {
+        return "rr";
+    }
+    if (value == "5" || value == "none" || value == "no-scheduling") {
+        return "none";
+    }
+
+    return value;
+}
+
+ScheduleResult runSelectedAlgorithm(const vector<Process>& processes, const string& algorithm, int quantum) {
+    if (algorithm == "fcfs") {
+        return runFirstComeFirstServed(processes);
+    }
+    if (algorithm == "sjf") {
+        return runShortestJobFirst(processes);
+    }
+    if (algorithm == "priority") {
+        return runPriorityScheduling(processes);
+    }
+    if (algorithm == "rr") {
+        return runRoundRobin(processes, quantum);
+    }
+    if (algorithm == "none") {
+        return runNoScheduling(processes);
+    }
+
+    throw runtime_error("Unsupported scheduling algorithm: " + algorithm);
+}
+}
+
+int main(int argc, char** argv) {
+    string inputFile;
+    string outputFile;
+    string algorithm;
+    int quantum = 0;
+    bool compareMode = false;
+    bool quantumProvided = false;
+
+    for (int i = 1; i < argc; ++i) {
+        string argument = argv[i];
+
+        if (argument == "--help" || argument == "-h") {
+            printHelp();
+            return 0;
+        } else if ((argument == "-f" || argument == "--input") && i + 1 < argc) {
+            inputFile = argv[++i];
+        } else if ((argument == "-o" || argument == "--output") && i + 1 < argc) {
+            outputFile = argv[++i];
+        } else if ((argument == "-a" || argument == "--algorithm") && i + 1 < argc) {
+            algorithm = normalizeAlgorithmName(argv[++i]);
+        } else if ((argument == "-q" || argument == "--quantum") && i + 1 < argc) {
+            quantum = stoi(argv[++i]);
+            quantumProvided = true;
+        } else if (argument == "--compare") {
+            compareMode = true;
+        } else {
+            cerr << "Unknown or incomplete argument: " << argument << endl;
+            printHelp();
+            return 1;
+        }
+    }
+
+    if (inputFile.empty()) {
+        cout << "Enter input file name: ";
+        cin >> inputFile;
+    }
+
+    if (!compareMode && algorithm.empty()) {
+        cout << "Choose scheduling method:" << endl;
+        cout << "1. First Come, First Served" << endl;
+        cout << "2. Shortest Job First" << endl;
+        cout << "3. Priority Scheduling" << endl;
+        cout << "4. Round Robin" << endl;
+        cout << "5. No Scheduling" << endl;
+        cout << "Option: ";
+        cin >> algorithm;
+        algorithm = normalizeAlgorithmName(algorithm);
+    }
+
+    if ((compareMode || algorithm == "rr") && quantum <= 0 && !quantumProvided) {
+        cout << "Enter Round Robin quantum: ";
+        cin >> quantum;
+    }
+
+    try {
+        vector<Process> processes = readProcessesFromFile(inputFile);
+
+        if (compareMode) {
+            vector<ScheduleResult> results = runAllAlgorithms(processes, quantum);
+            printComparisonReport(results, cout);
+
+            if (!outputFile.empty()) {
+                ofstream output(outputFile.c_str());
+                if (!output.is_open()) {
+                    throw runtime_error("Failed to open output file: " + outputFile);
+                }
+                printComparisonReport(results, output);
+            }
+
+            return 0;
+        }
+
+        ScheduleResult result = runSelectedAlgorithm(processes, algorithm, quantum);
+        printReport(result, cout);
+
+        if (!outputFile.empty()) {
+            ofstream output(outputFile.c_str());
+            if (!output.is_open()) {
+                throw runtime_error("Failed to open output file: " + outputFile);
+            }
+            printReport(result, output);
+        }
+    } catch (const exception& error) {
+        cerr << "Error: " << error.what() << endl;
+        return 1;
+    }
+
+    return 0;
+}
