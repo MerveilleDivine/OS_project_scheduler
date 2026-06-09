@@ -21,6 +21,20 @@ assert_contains() {
     fi
 }
 
+assert_matches() {
+    local output="$1"
+    local pattern="$2"
+    local context="$3"
+
+    if ! printf '%s\n' "$output" | grep -Eq "$pattern"; then
+        echo "Assertion failed for $context"
+        echo "Expected pattern: $pattern"
+        echo "Actual output:"
+        echo "$output"
+        exit 1
+    fi
+}
+
 run_scheduler() {
     local algorithm="$1"
     shift
@@ -33,9 +47,9 @@ g++ -std=c++11 scheduler.cpp -o scheduler
 echo "Testing FCFS..."
 FCFS_OUTPUT="$(run_scheduler fcfs)"
 assert_contains "$FCFS_OUTPUT" "Scheduling Method: First Come, First Served" "FCFS method name"
-assert_contains "$FCFS_OUTPUT" "P1        0           5         3         0         5           0         5           0" "FCFS P1 metrics"
-assert_contains "$FCFS_OUTPUT" "P2        1           4         2         5         9           4         8           4" "FCFS P2 metrics"
-assert_contains "$FCFS_OUTPUT" "P5        3           3         1         16        19          13        16          13" "FCFS P5 metrics"
+assert_matches "$FCFS_OUTPUT" '^P1[[:space:]]+0[[:space:]]+5[[:space:]]+3[[:space:]]+0[[:space:]]+5[[:space:]]+0[[:space:]]+5[[:space:]]+0' "FCFS P1 metrics"
+assert_matches "$FCFS_OUTPUT" '^P2[[:space:]]+1[[:space:]]+4[[:space:]]+2[[:space:]]+5[[:space:]]+9[[:space:]]+4[[:space:]]+8[[:space:]]+4' "FCFS P2 metrics"
+assert_matches "$FCFS_OUTPUT" '^P5[[:space:]]+3[[:space:]]+3[[:space:]]+1[[:space:]]+16[[:space:]]+19[[:space:]]+13[[:space:]]+16[[:space:]]+13' "FCFS P5 metrics"
 assert_contains "$FCFS_OUTPUT" "Average Waiting Time: 7.00 ms" "FCFS average waiting time"
 assert_contains "$FCFS_OUTPUT" "Average Turnaround Time: 11.00 ms" "FCFS average turnaround time"
 
