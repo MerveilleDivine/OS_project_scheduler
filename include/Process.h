@@ -1,6 +1,9 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
+#include <string>
+#include <vector>
+
 struct Process {
     int id;
     int arrivalTime;
