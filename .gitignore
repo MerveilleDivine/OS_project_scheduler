@@ -1,5 +1,9 @@
 # Build outputs
 scheduler
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
 *.out
 *.exe
 *.o
@@ -8,6 +12,7 @@ scheduler
 # Generated reports
 output.txt
 results.txt
+*.log
 
 # Editor files
 .vscode/
