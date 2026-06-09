@@ -1,24 +1,28 @@
 ---
 
-CPU Scheduler Simulation
+# CPU Scheduler Simulator
 
-**Course Project — Operating Systems / CPE351**
-This project is a complete simulation of CPU process scheduling algorithms, developed as part of a **C++ programming exam**.
+A C++ command-line simulator for comparing classic CPU scheduling algorithms and their process-level performance metrics.
 
-It implements **multiple scheduling strategies** and computes key performance metrics, meeting the given specification for reading input from a file, allowing user-driven scheduling choice, and writing results to both screen and file.
+This project began as an **Operating Systems / CPE351 course project** and is being improved into a more polished engineering portfolio project.
+
+It implements multiple scheduling strategies, reads process data from a file, lets the user choose a scheduling method, and writes results to both the terminal and an optional output file.
 
 ---
 
 ## 📌 Project Objectives
 
-The goal was to **simulate the service of jobs (processes) by the CPU** in a multi-user system.
+The goal is to **simulate the service of jobs/processes by the CPU** in a multi-user system.
+
 The simulator:
 
-* Reads process data from a **text file** (`-f` argument).
-* Writes results to an **output file** (`-o` argument) and to the **screen**.
-* Allows the user to select a scheduling method at runtime.
+* Reads process data from a **text file** using `-f` or `--input`.
+* Writes results to an **output file** using `-o` or `--output`.
+* Allows the user to select a scheduling algorithm from the CLI.
 * Computes and reports:
 
+  * Start time per process
+  * Completion time per process
   * Waiting time per process
   * Average waiting time
   * Turnaround time per process
@@ -30,27 +34,27 @@ The simulator:
 
 ## ⚙️ Scheduling Methods Implemented
 
-1. **None** (No scheduling, sequential execution)
-2. **First Come, First Served (FCFS)** — Non-preemptive
-3. **Shortest Job First (SJF)** — Non-preemptive
-4. **Priority Scheduling** — Non-preemptive
-5. **Round Robin (RR)** — User-provided quantum
+1. **None** — sequential execution in input order
+2. **First Come, First Served (FCFS)** — non-preemptive
+3. **Shortest Job First (SJF)** — non-preemptive and arrival-time aware
+4. **Priority Scheduling** — non-preemptive and arrival-time aware
+5. **Round Robin (RR)** — preemptive with user-provided quantum
+
+> Priority Scheduling currently treats a **lower priority number** as higher priority.
 
 ---
 
-## 📂 Input & Output Format
-
-### **Input File Format** (`input.txt`):
+## 📂 Input Format
 
 Each process has three values separated by `:`:
 
-```
+```text
 burst_time:arrival_time:priority
 ```
 
 Example:
 
-```
+```text
 5:0:3
 4:1:2
 3:1:1
@@ -58,12 +62,31 @@ Example:
 3:3:1
 ```
 
+A sample input file is included at:
+
+```text
+examples/sample_input.txt
+```
+
 ---
 
-### **Example Commands**
+## 🚀 How to Compile & Run
+
+### Compile directly with g++
+
+```bash
+g++ -std=c++11 scheduler.cpp -o scheduler
+```
+
+### Run FCFS
 
 ```bash
 ./scheduler -f examples/sample_input.txt -o output.txt --algorithm fcfs
+```
+
+### Run Round Robin
+
+```bash
 ./scheduler -f examples/sample_input.txt -o output.txt --algorithm rr --quantum 2
 ```
 
@@ -73,9 +96,15 @@ Supported algorithms:
 none, fcfs, sjf, priority, rr
 ```
 
+You can also use the longer CLI form:
+
+```bash
+./scheduler --input examples/sample_input.txt --output output.txt --algorithm sjf
+```
+
 ---
 
-### **Sample Screen Output**
+## 🧪 Sample Output
 
 ```text
 Scheduling Method: First Come, First Served
@@ -88,30 +117,6 @@ P5        3           3         1         16        19          13        16    
 Average Waiting Time: 7.00 ms
 Average Turnaround Time: 11.00 ms
 Average Response Time: 7.00 ms
-```
-
----
-
-## 🚀 How to Compile & Run
-
-### **Compile directly with g++**
-
-```bash
-g++ -std=c++11 scheduler.cpp -o scheduler
-```
-
-### **Run**
-
-```bash
-./scheduler -f examples/sample_input.txt -o output.txt --algorithm fcfs
-```
-
-### **Build with CMake**
-
-```bash
-cmake -S . -B build
-cmake --build build
-ctest --test-dir build --output-on-failure
 ```
 
 ---
@@ -133,44 +138,70 @@ The tests compile the program and validate expected metrics for:
 * Invalid Round Robin quantum handling
 * Output file generation
 
-A GitHub Actions workflow also builds and tests the project automatically on pushes and pull requests.
+---
+
+## 🔁 Continuous Integration
+
+The repository includes a GitHub Actions workflow that:
+
+1. Checks out the repository.
+2. Compiles the scheduler directly with `g++`.
+3. Runs CLI regression tests.
+4. Configures the project with CMake.
+5. Builds with CMake.
+6. Runs CTest.
+
+---
+
+## 🏗 Build with CMake
+
+```bash
+cmake -S . -B build
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
 
 ---
 
 ## 🛠 Tech & Concepts Used
 
-* **C++ (C++11 standard)**
-* **Data Structures:**
+* **C++11**
+* **Data structures:**
 
   * Queues
   * Sorting algorithms
   * Ready-queue scheduling logic
-* **Operating System Concepts:**
+* **Operating system concepts:**
 
-  * CPU Scheduling Algorithms
-  * Turnaround, waiting, response, start, and completion time calculation
-  * Preemptive vs Non-preemptive scheduling logic
-* **File I/O in C++**
+  * CPU scheduling algorithms
+  * Waiting time
+  * Turnaround time
+  * Response time
+  * Completion time
+  * Preemptive and non-preemptive scheduling
+* **File I/O**
+* **Command-line argument parsing**
 * **CLI regression testing**
+* **CMake**
 * **GitHub Actions CI**
 
 ---
 
 ## 📚 Learning Outcomes
 
-* Designed a **modular C++ scheduling simulation** around clear process execution metrics.
-* Applied **core OS scheduling concepts** in a working command-line program.
-* Implemented **file parsing**, **CLI argument handling**, and **output report generation**.
-* Added **regression tests** to protect algorithm correctness.
-* Added **CI automation** to make the repository easier to review and maintain.
+* Designed a C++ scheduling simulation around clear process execution metrics.
+* Applied core OS scheduling concepts in a working command-line program.
+* Implemented file parsing, CLI argument handling, and output report generation.
+* Added regression tests to protect algorithm correctness.
+* Added CI automation to make the repository easier to review and maintain.
 
 ---
 
 ## 🔮 Possible Extensions
 
-* Add **Preemptive** variants of SJF and Priority scheduling.
-* Visualize scheduling with **Gantt charts**.
-* Export results in **CSV/JSON** for further analysis.
+* Add preemptive variants of SJF and Priority Scheduling.
+* Visualize scheduling with Gantt charts.
+* Export results in CSV/JSON for further analysis.
 * Split the project into `src/`, `include/`, and `tests/` directories for a larger production-style structure.
 
 ---
