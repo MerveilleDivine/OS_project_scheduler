@@ -78,6 +78,7 @@ int main(int argc, char** argv) {
     string algorithm;
     int quantum = 0;
     bool compareMode = false;
+    bool quantumProvided = false;
 
     for (int i = 1; i < argc; ++i) {
         string argument = argv[i];
@@ -93,6 +94,7 @@ int main(int argc, char** argv) {
             algorithm = normalizeAlgorithmName(argv[++i]);
         } else if ((argument == "-q" || argument == "--quantum") && i + 1 < argc) {
             quantum = stoi(argv[++i]);
+            quantumProvided = true;
         } else if (argument == "--compare") {
             compareMode = true;
         } else {
@@ -119,7 +121,7 @@ int main(int argc, char** argv) {
         algorithm = normalizeAlgorithmName(algorithm);
     }
 
-    if ((compareMode || algorithm == "rr") && quantum <= 0) {
+    if ((compareMode || algorithm == "rr") && quantum <= 0 && !quantumProvided) {
         cout << "Enter Round Robin quantum: ";
         cin >> quantum;
     }
