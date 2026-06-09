@@ -1,450 +1,495 @@
-#include <iostream>
-#include <fstream>
-#include <cstring>
-#include <stdexcept>
-#include <vector>
-#include <queue> // for First Come, First Served Scheduling and Round-Robin Scheduling
-#include <functional> // for Shortest-Job-First Scheduling and Priority Scheduling
 #include <algorithm>
+#include <cctype>
 #include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <queue>
 #include <sstream>
-
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 using namespace std;
 
-// Structure for a process
 struct Process {
-int burst_time;
-int arrival_time;
-int priority;
-int waiting_time;
-int turnaround_time;
+    int id;
+    int arrivalTime;
+    int burstTime;
+    int remainingTime;
+    int priority;
+    int startTime;
+    int completionTime;
+    int waitingTime;
+    int turnaroundTime;
+    int responseTime;
 
-
+    Process()
+        : id(0), arrivalTime(0), burstTime(0), remainingTime(0), priority(0),
+          startTime(-1), completionTime(0), waitingTime(0), turnaroundTime(0),
+          responseTime(0) {}
 };
 
-// Compare function for Shortest-Job-First Scheduling
-struct CompareByBurstTime {
-bool operator()(const Process& p1, const Process& p2) const {
-return p1.burst_time > p2.burst_time;
-}
-};
-
-// Compare function for Priority Scheduling
-struct CompareByPriority {
-bool operator()(const Process& p1, const Process& p2) const {
-return p1.priority > p2.priority;
-}
-};
-
-// Functions
-void choose_scheduling_method(vector<Process>& processes, const string &schedulingMethod);
-void run_first_come_first_served_scheduling(vector<Process>& processes, const string &schedulingMethod);
-void run_shortest_job_first_scheduling(vector<Process>& processes, const string &schedulingMethod);
-void run_priority_scheduling(vector<Process>& processes,const string &schedulingMethod);
-void run_round_robin_scheduling(vector<Process>& processes, const string &schedulingMethod);
-void run_no_scheduling(vector<Process>& processes,const string &schedulingMethod);
-void show_result(const vector<Process>& processes, const string &schedulingMethod );
-void end_program(const vector<Process>& processes, const string& output_file);
-void show_menu(vector<Process>& processes, const string& output_file);
-
-int main(int my_argc, char** my_argv) {
-
-  // Initialize variables for input and output file names
-  string input_file;
-  string output_file;
-  string schedulingmethodStr;
- 
-  
-
-  // Parse the command line arguments
-  for (int i = 1; i < my_argc; i++) {
-    if (strcmp(my_argv[i], "-f") == 0) {
-      input_file = my_argv[i+1];
-    } else if (strcmp(my_argv[i], "-o") == 0) {
-      output_file = my_argv[i+1];
+string toLower(string value) {
+    for (size_t i = 0; i < value.size(); ++i) {
+        value[i] = static_cast<char>(tolower(value[i]));
     }
-  }
-
-for (int i = 1; i < my_argc; i++) {
-    if (!input_file.empty() && !output_file.empty()) {
-        break;
-    }
-    string arg = my_argv[i];
-    if (arg == "-f" && (i + 1) < my_argc) {
-        input_file = my_argv[i + 1];
-    } else if (arg == "-o" && (i + 1) < my_argc) {
-        output_file = my_argv[i + 1];
-    }
+    return value;
 }
 
+void calculateMetrics(Process& process) {
+    process.turnaroundTime = process.completionTime - process.arrivalTime;
+    process.waitingTime = process.turnaroundTime - process.burstTime;
+    process.responseTime = process.startTime - process.arrivalTime;
+}
 
+vector<string> split(const string& line, char delimiter) {
+    vector<string> tokens;
+    string token;
+    stringstream ss(line);
 
-
-   // If input file name was not parsed from command line arguments
-  if (input_file.empty()) {
-    // Ask for the input file name
-    cout << "It seems like you have not parsed a file, please enter the input file name or exit and parse the filename: ";
-    cin >> input_file;
-  }
-
-  try {
-    // Open the input file in a loop until a valid file is found
-    ifstream input(input_file);
-    while (!input.is_open()) {
-      try {
-        input.open(input_file);
-        if (!input.is_open()) {
-          throw runtime_error("Failed to open input file: " + input_file);
-        }
-      } catch (const exception& e) {
-        cerr << "Error: " << e.what() << endl;
-
-        cout << "I couldn't find it, enter the input file name again: ";
-        cin >> input_file;
-      }
+    while (getline(ss, token, delimiter)) {
+        tokens.push_back(token);
     }
-  cout << "Welcome to the Process Scheduler!" << endl;
-  cout << "There is 4 scheduling method in this program, which one will you use? : FCFS, SJF, Priority, RR -->  ";
-  cin >> schedulingmethodStr;
 
-  try {
-    // Read the data from the input file
+    return tokens;
+}
 
-    int burst_time, arrival_time, priority;
+vector<Process> readProcesses(const string& inputFile) {
+    ifstream input(inputFile.c_str());
+
+    if (!input.is_open()) {
+        throw runtime_error("Failed to open input file: " + inputFile);
+    }
+
     vector<Process> processes;
     string line;
+    int lineNumber = 0;
+    int processId = 1;
+
     while (getline(input, line)) {
-      stringstream ss(line);
-      string token;
-      vector<string> tokens;
-      while (getline(ss, token, ':')) {
-        tokens.push_back(token);
-      }
-      // create a process using the tokens
-      Process p;
-      p.burst_time = stoi(tokens[0]);
-      p.arrival_time = stoi(tokens[1]);
-      p.priority = stoi(tokens[2]);
-      processes.push_back(p);
-    }
-    // Close the input file
-    input.close();
+        ++lineNumber;
 
-    // Show the menu to the user
-    show_menu(processes, schedulingmethodStr);
-  } catch (const exception& e) {
-    cerr << "Error: " << e.what() << endl;
-  }
-
-  } catch (const exception& e) {
-    cerr << "Error: " << e.what() << endl;
-  }
-  return 0;
-}
-
-
-
-
-
-void choose_scheduling_method(vector<Process>& processes, const string &schedulingmethodStr) {
-
-cout << "Please confirm the scheduling method (1,2,3,4,5): " << endl;
-cout << "1. First Come, First Served Scheduling" << endl;
-cout << "2. Shortest-Job-First Scheduling" << endl;
-cout << "3. Priority Scheduling" << endl;
-cout << "4. Round-Robin Scheduling" << endl;
-cout << "5. No Scheduling (Press any other key to continue without scheduling)" << endl;
-
-int scheduling_method;
-cin >> scheduling_method;
-
-switch (scheduling_method) {
-case 1:
-// First Come, First Served Scheduling
-run_first_come_first_served_scheduling(processes, schedulingmethodStr);
-break;
-case 2:
-// Shortest-Job-First Scheduling
-run_shortest_job_first_scheduling(processes, schedulingmethodStr);
-break;
-case 3:
-// Priority Scheduling
-run_priority_scheduling(processes, schedulingmethodStr);
-break;
-case 4:
-// Round-Robin Scheduling
-run_round_robin_scheduling(processes, schedulingmethodStr);
-break;
-default:
-// No Scheduling
-run_no_scheduling(processes, schedulingmethodStr);
-break;
-}
-}
-
-
-// Function to run First Come, First Served Scheduling
-void run_first_come_first_served_scheduling(vector<Process>& processes, const string &schedulingmethodStr) {
-    // Sort the processes by arrival time
-    sort(processes.begin(), processes.end(), [](const Process& p1, const Process& p2) {
-        return p1.arrival_time < p2.arrival_time;
-    });
-
-    // Create a queue for the processes
-    queue<Process> process_queue;
-
-    // Variables to keep track of current time, completion time and waiting time
-    int current_time = 0;
-    vector<int> completion_time(processes.size());
-    vector<int> waiting_time(processes.size());
-
-    // Loop through the processes
-    for (int i = 0; i < processes.size(); i++) {
-        // Add the process to the queue if it arrives at the current time
-        if (processes[i].arrival_time == current_time) {
-            process_queue.push(processes[i]);
-        }
-
-        // If there are no processes in the queue, move the current time to the arrival time of the next process
-        if (process_queue.empty()) {
-            current_time = processes[i].arrival_time;
-            process_queue.push(processes[i]);
+        if (line.empty()) {
             continue;
         }
 
-        // Get the first process in the queue
-        Process current_process = process_queue.front();
-        process_queue.pop();
+        vector<string> tokens = split(line, ':');
+        if (tokens.size() != 3) {
+            stringstream error;
+            error << "Invalid input on line " << lineNumber
+                  << ": expected burst_time:arrival_time:priority";
+            throw runtime_error(error.str());
+        }
 
-        // Update the completion time and waiting time for the current process
-        completion_time[i] = current_time + current_process.burst_time;
-        waiting_time[i] = current_time - current_process.arrival_time;
+        Process process;
+        process.id = processId++;
+        process.burstTime = stoi(tokens[0]);
+        process.arrivalTime = stoi(tokens[1]);
+        process.priority = stoi(tokens[2]);
+        process.remainingTime = process.burstTime;
 
-        // Move the current time to the completion time of the current process
-        current_time = completion_time[i];
+        if (process.burstTime < 0 || process.arrivalTime < 0) {
+            stringstream error;
+            error << "Invalid negative value on line " << lineNumber;
+            throw runtime_error(error.str());
+        }
 
-        // Add the next process to the queue if it arrives at the current time
-        for (int j = i+1; j < processes.size(); j++) {
-            if (processes[j].arrival_time == current_time) {
-                process_queue.push(processes[j]);
+        processes.push_back(process);
+    }
+
+    if (processes.empty()) {
+        throw runtime_error("Input file does not contain any processes.");
+    }
+
+    return processes;
+}
+
+void sortByProcessId(vector<Process>& processes) {
+    sort(processes.begin(), processes.end(), [](const Process& first, const Process& second) {
+        return first.id < second.id;
+    });
+}
+
+vector<Process> runFirstComeFirstServed(vector<Process> processes) {
+    sort(processes.begin(), processes.end(), [](const Process& first, const Process& second) {
+        if (first.arrivalTime == second.arrivalTime) {
+            return first.id < second.id;
+        }
+        return first.arrivalTime < second.arrivalTime;
+    });
+
+    int currentTime = 0;
+
+    for (size_t i = 0; i < processes.size(); ++i) {
+        if (currentTime < processes[i].arrivalTime) {
+            currentTime = processes[i].arrivalTime;
+        }
+
+        processes[i].startTime = currentTime;
+        currentTime += processes[i].burstTime;
+        processes[i].completionTime = currentTime;
+        processes[i].remainingTime = 0;
+        calculateMetrics(processes[i]);
+    }
+
+    sortByProcessId(processes);
+    return processes;
+}
+
+vector<Process> runNoScheduling(vector<Process> processes) {
+    int currentTime = 0;
+
+    for (size_t i = 0; i < processes.size(); ++i) {
+        if (currentTime < processes[i].arrivalTime) {
+            currentTime = processes[i].arrivalTime;
+        }
+
+        processes[i].startTime = currentTime;
+        currentTime += processes[i].burstTime;
+        processes[i].completionTime = currentTime;
+        processes[i].remainingTime = 0;
+        calculateMetrics(processes[i]);
+    }
+
+    sortByProcessId(processes);
+    return processes;
+}
+
+vector<Process> runShortestJobFirst(vector<Process> processes) {
+    int currentTime = 0;
+    int completedProcesses = 0;
+    vector<bool> completed(processes.size(), false);
+
+    while (completedProcesses < static_cast<int>(processes.size())) {
+        int selectedIndex = -1;
+
+        for (size_t i = 0; i < processes.size(); ++i) {
+            if (completed[i] || processes[i].arrivalTime > currentTime) {
+                continue;
+            }
+
+            if (selectedIndex == -1 ||
+                processes[i].burstTime < processes[selectedIndex].burstTime ||
+                (processes[i].burstTime == processes[selectedIndex].burstTime &&
+                 processes[i].arrivalTime < processes[selectedIndex].arrivalTime) ||
+                (processes[i].burstTime == processes[selectedIndex].burstTime &&
+                 processes[i].arrivalTime == processes[selectedIndex].arrivalTime &&
+                 processes[i].id < processes[selectedIndex].id)) {
+                selectedIndex = static_cast<int>(i);
             }
         }
+
+        if (selectedIndex == -1) {
+            int nextArrival = -1;
+            for (size_t i = 0; i < processes.size(); ++i) {
+                if (!completed[i] && (nextArrival == -1 || processes[i].arrivalTime < nextArrival)) {
+                    nextArrival = processes[i].arrivalTime;
+                }
+            }
+            currentTime = nextArrival;
+            continue;
+        }
+
+        Process& process = processes[selectedIndex];
+        process.startTime = currentTime;
+        currentTime += process.burstTime;
+        process.completionTime = currentTime;
+        process.remainingTime = 0;
+        calculateMetrics(process);
+
+        completed[selectedIndex] = true;
+        ++completedProcesses;
     }
 
-    // Show the result
-    show_result(processes, schedulingmethodStr);
+    sortByProcessId(processes);
+    return processes;
 }
 
+vector<Process> runPriorityScheduling(vector<Process> processes) {
+    int currentTime = 0;
+    int completedProcesses = 0;
+    vector<bool> completed(processes.size(), false);
 
+    while (completedProcesses < static_cast<int>(processes.size())) {
+        int selectedIndex = -1;
 
-// Function to run Shortest-Job-First Scheduling
-void run_shortest_job_first_scheduling(vector<Process>& processes, const string &schedulingmethodStr) {
-  // Sort the processes by burst time
-    sort(processes.begin(), processes.end(), CompareByBurstTime());
+        for (size_t i = 0; i < processes.size(); ++i) {
+            if (completed[i] || processes[i].arrivalTime > currentTime) {
+                continue;
+            }
 
-    // Variables to keep track of current time, completion time and waiting time
-    int current_time = 0;
-    vector<int> completion_time(processes.size());
-    vector<int> waiting_time(processes.size());
+            if (selectedIndex == -1 ||
+                processes[i].priority < processes[selectedIndex].priority ||
+                (processes[i].priority == processes[selectedIndex].priority &&
+                 processes[i].arrivalTime < processes[selectedIndex].arrivalTime) ||
+                (processes[i].priority == processes[selectedIndex].priority &&
+                 processes[i].arrivalTime == processes[selectedIndex].arrivalTime &&
+                 processes[i].id < processes[selectedIndex].id)) {
+                selectedIndex = static_cast<int>(i);
+            }
+        }
 
-    // Loop through the processes
-    for (int i = 0; i < processes.size(); i++) {
-        // Update the completion time and waiting time for the current process
-        completion_time[i] = current_time + processes[i].burst_time;
-        waiting_time[i] = current_time - processes[i].arrival_time;
+        if (selectedIndex == -1) {
+            int nextArrival = -1;
+            for (size_t i = 0; i < processes.size(); ++i) {
+                if (!completed[i] && (nextArrival == -1 || processes[i].arrivalTime < nextArrival)) {
+                    nextArrival = processes[i].arrivalTime;
+                }
+            }
+            currentTime = nextArrival;
+            continue;
+        }
 
-        // Move the current time to the completion time of the current process
-        current_time = completion_time[i];
+        Process& process = processes[selectedIndex];
+        process.startTime = currentTime;
+        currentTime += process.burstTime;
+        process.completionTime = currentTime;
+        process.remainingTime = 0;
+        calculateMetrics(process);
+
+        completed[selectedIndex] = true;
+        ++completedProcesses;
     }
 
-    // Show the result
-show_result(processes, schedulingmethodStr);
+    sortByProcessId(processes);
+    return processes;
 }
 
+vector<Process> runRoundRobin(vector<Process> processes, int quantum) {
+    if (quantum <= 0) {
+        throw runtime_error("Round Robin quantum must be greater than 0.");
+    }
 
+    sort(processes.begin(), processes.end(), [](const Process& first, const Process& second) {
+        if (first.arrivalTime == second.arrivalTime) {
+            return first.id < second.id;
+        }
+        return first.arrivalTime < second.arrivalTime;
+    });
 
+    queue<int> readyQueue;
+    int currentTime = 0;
+    size_t nextProcessIndex = 0;
+    int completedProcesses = 0;
 
+    while (completedProcesses < static_cast<int>(processes.size())) {
+        if (readyQueue.empty() && nextProcessIndex < processes.size() &&
+            currentTime < processes[nextProcessIndex].arrivalTime) {
+            currentTime = processes[nextProcessIndex].arrivalTime;
+        }
 
-// Function to run Priority Scheduling
-void run_priority_scheduling(vector<Process>& processes, const string &schedulingmethodStr) {
-  // sort the processes based on their priority
-  sort(processes.begin(), processes.end(), CompareByPriority());
-  
-  int current_time = 0;
-  int waiting_time = 0;
-  int turn_around_time = 0;
+        while (nextProcessIndex < processes.size() &&
+               processes[nextProcessIndex].arrivalTime <= currentTime) {
+            readyQueue.push(static_cast<int>(nextProcessIndex));
+            ++nextProcessIndex;
+        }
 
-  for (auto& process : processes) {
-    current_time += process.burst_time;
-    waiting_time += current_time - process.burst_time - process.arrival_time;
-    turn_around_time += current_time - process.arrival_time;
-  }
+        if (readyQueue.empty()) {
+            continue;
+        }
 
-  // Show the results
-  cout << "Priority Scheduling" << endl;
-  cout << "Average Waiting Time: " << (float) waiting_time / processes.size() << endl;
-  cout << "Average Turnaround Time: " << (float) turn_around_time / processes.size() << endl;
-  show_result(processes, schedulingmethodStr);
-}
+        int processIndex = readyQueue.front();
+        readyQueue.pop();
+        Process& process = processes[processIndex];
 
+        if (process.startTime == -1) {
+            process.startTime = currentTime;
+        }
 
+        int timeSlice = min(quantum, process.remainingTime);
+        process.remainingTime -= timeSlice;
+        currentTime += timeSlice;
 
-// Function to run Round-Robin Scheduling
-void run_round_robin_scheduling(vector<Process>& processes, const string &schedulingmethodStr) {
-    string output_file;
-    // Initialize variables for time and quantum
-    int time = 0;
-    int quantum;
-    cout << "Please enter the quantum time: ";
-    cin >> quantum;
+        while (nextProcessIndex < processes.size() &&
+               processes[nextProcessIndex].arrivalTime <= currentTime) {
+            readyQueue.push(static_cast<int>(nextProcessIndex));
+            ++nextProcessIndex;
+        }
 
-    // Initialize a queue for the processes
-    queue<Process> process_queue;
-
-    // Initialize a vector for the result
-    vector<Process> result;
-
-    // Iterate through the processes
-    for (int i = 0; i < processes.size(); i++) {
-        // Check if the current process has arrived
-        if (processes[i].arrival_time <= time) {
-            process_queue.push(processes[i]);
+        if (process.remainingTime > 0) {
+            readyQueue.push(processIndex);
         } else {
-            // Keep track of the time until the next process arrives
-            time = processes[i].arrival_time;
-            process_queue.push(processes[i]);
-        }
-
-        // Run the process for the quantum time
-        Process current_process = process_queue.front();
-        process_queue.pop();
-        time += min(current_process.burst_time, quantum);
-        current_process.burst_time -= min(current_process.burst_time, quantum);
-
-        // If the process is not completed, put it back in the queue
-        if (current_process.burst_time > 0) {
-            process_queue.push(current_process);
-        } else {
-            result.push_back(current_process);
-        }
-
-        // Check for any other processes that have arrived
-        while (i < processes.size() - 1 && processes[i + 1].arrival_time <= time) {
-            process_queue.push(processes[++i]);
+            process.completionTime = currentTime;
+            calculateMetrics(process);
+            ++completedProcesses;
         }
     }
 
-    // Push any remaining processes in the queue to the result
-    while (!process_queue.empty()) {
-        Process current_process = process_queue.front();
-        process_queue.pop();
-        result.push_back(current_process);
-    }
-
-    // Show the result
-    show_result(result, schedulingmethodStr);
-    // End the program
-    end_program(result, output_file);
+    sortByProcessId(processes);
+    return processes;
 }
 
-
-
-
-
-// Function to run No Scheduling
-void run_no_scheduling(vector<Process>& processes, const string &schedulingmethodStr) {
-    string output_file;
-// Initialize the waiting time and turnaround time for each process
-for (Process& p : processes) {
-p.waiting_time = 0;
-p.turnaround_time = p.burst_time;
-}
-
-// Calculate the average waiting time and turnaround time
-double total_waiting_time = 0;
-double total_turnaround_time = 0;
-
-for (const Process& p : processes) {
-total_waiting_time += p.waiting_time;
-total_turnaround_time += p.turnaround_time;
-}
-double average_waiting_time = total_waiting_time / processes.size();
-double average_turnaround_time = total_turnaround_time / processes.size();
-
-// Show the result
-show_result(processes, schedulingmethodStr);
-cout << "Average Waiting Time: " << average_waiting_time << endl;
-cout << "Average Turnaround Time: " << average_turnaround_time << endl;
-
-// End the program
-end_program(processes, output_file);
-}
-
-
-// Function to show the menu to the user
-void show_menu(vector<Process>& processes, const string &schedulingmethodStr) {
-cout << "Please choose an option: " << endl;
-cout << "1. Schedule the processes" << endl;
-cout << "2. Show the result" << endl;
-cout << "3. End the program" << endl;
-
-int option;
-cin >> option;
-
-switch (option) {
-case 1:
-choose_scheduling_method(processes, schedulingmethodStr);
-break;
-case 2:
-show_result(processes, schedulingmethodStr);
-break;
-case 3:
-// Exit the program
-break;
-default:
-cout << "Invalid option. Please try again." << endl;
-show_menu(processes,schedulingmethodStr );
-break;
-}
-}
-
-
-void show_result(const vector<Process>& processes, const string &schedulingmethodStr) {
-    cout << "Scheduling Method: " <<schedulingmethodStr << endl;
-    cout << "Process Waiting Times:" << endl;
+void printReport(const vector<Process>& processes, const string& schedulingMethod, ostream& output) {
     int totalWaitingTime = 0;
-    for (int i = 0; i < processes.size(); i++) {
-        cout << "P" << i+1 << ": " << processes[i].waiting_time << " ms" << endl;
-        totalWaitingTime += processes[i].waiting_time;
-    }
-    float avgWaitingTime = totalWaitingTime / (float)processes.size();
-    cout << "Average Waiting Time: " << avgWaitingTime << " ms" << endl;
-
-    cout << "Process Turnaround Times:" << endl;
     int totalTurnaroundTime = 0;
-    for (int i = 0; i < processes.size(); i++) {
-        cout << "P" << i+1 << ": " << processes[i].turnaround_time << " ms" << endl;
-        totalTurnaroundTime += processes[i].turnaround_time;
+    int totalResponseTime = 0;
+
+    output << "Scheduling Method: " << schedulingMethod << endl;
+    output << left << setw(10) << "Process"
+           << setw(12) << "Arrival"
+           << setw(10) << "Burst"
+           << setw(10) << "Priority"
+           << setw(10) << "Start"
+           << setw(12) << "Complete"
+           << setw(10) << "Waiting"
+           << setw(12) << "Turnaround"
+           << setw(10) << "Response" << endl;
+
+    for (size_t i = 0; i < processes.size(); ++i) {
+        const Process& process = processes[i];
+        output << left << setw(10) << ("P" + to_string(process.id))
+               << setw(12) << process.arrivalTime
+               << setw(10) << process.burstTime
+               << setw(10) << process.priority
+               << setw(10) << process.startTime
+               << setw(12) << process.completionTime
+               << setw(10) << process.waitingTime
+               << setw(12) << process.turnaroundTime
+               << setw(10) << process.responseTime << endl;
+
+        totalWaitingTime += process.waitingTime;
+        totalTurnaroundTime += process.turnaroundTime;
+        totalResponseTime += process.responseTime;
     }
-    float avgTurnaroundTime = totalTurnaroundTime / (float)processes.size();
-    cout << "Average Turnaround Time: " << avgTurnaroundTime << " ms" << endl;
+
+    output << fixed << setprecision(2);
+    output << "Average Waiting Time: "
+           << totalWaitingTime / static_cast<double>(processes.size()) << " ms" << endl;
+    output << "Average Turnaround Time: "
+           << totalTurnaroundTime / static_cast<double>(processes.size()) << " ms" << endl;
+    output << "Average Response Time: "
+           << totalResponseTime / static_cast<double>(processes.size()) << " ms" << endl;
 }
 
-
-
-
-// Function to end the program
-void end_program(const vector<Process>& processes, const string& output_file) {
-  // Open the output file
-  ofstream output(output_file);
-
-  // Write the data to the output file
-  for (const auto& p : processes) {
-    output << p.burst_time << " " << p.arrival_time << " " << p.priority << endl;
-  }
-
-  // Close the output file
-  output.close();
+void printHelp() {
+    cout << "CPU Scheduler Simulator" << endl;
+    cout << "Usage:" << endl;
+    cout << "  ./scheduler -f input.txt -o output.txt --algorithm fcfs" << endl;
+    cout << "  ./scheduler -f input.txt -o output.txt --algorithm rr --quantum 2" << endl;
+    cout << endl;
+    cout << "Algorithms: none, fcfs, sjf, priority, rr" << endl;
 }
 
+string normalizeAlgorithmName(const string& input) {
+    string value = toLower(input);
+
+    if (value == "1" || value == "fcfs" || value == "first-come-first-served") {
+        return "fcfs";
+    }
+    if (value == "2" || value == "sjf" || value == "shortest-job-first") {
+        return "sjf";
+    }
+    if (value == "3" || value == "priority") {
+        return "priority";
+    }
+    if (value == "4" || value == "rr" || value == "round-robin") {
+        return "rr";
+    }
+    if (value == "5" || value == "none" || value == "no-scheduling") {
+        return "none";
+    }
+
+    return value;
+}
+
+string displayNameForAlgorithm(const string& algorithm, int quantum) {
+    if (algorithm == "fcfs") {
+        return "First Come, First Served";
+    }
+    if (algorithm == "sjf") {
+        return "Shortest Job First - Non-Preemptive";
+    }
+    if (algorithm == "priority") {
+        return "Priority Scheduling - Non-Preemptive";
+    }
+    if (algorithm == "rr") {
+        stringstream name;
+        name << "Round Robin - Quantum " << quantum;
+        return name.str();
+    }
+    return "No Scheduling";
+}
+
+int main(int argc, char** argv) {
+    string inputFile;
+    string outputFile;
+    string algorithm;
+    int quantum = 0;
+
+    for (int i = 1; i < argc; ++i) {
+        string argument = argv[i];
+
+        if (argument == "--help" || argument == "-h") {
+            printHelp();
+            return 0;
+        } else if ((argument == "-f" || argument == "--input") && i + 1 < argc) {
+            inputFile = argv[++i];
+        } else if ((argument == "-o" || argument == "--output") && i + 1 < argc) {
+            outputFile = argv[++i];
+        } else if ((argument == "-a" || argument == "--algorithm") && i + 1 < argc) {
+            algorithm = normalizeAlgorithmName(argv[++i]);
+        } else if ((argument == "-q" || argument == "--quantum") && i + 1 < argc) {
+            quantum = stoi(argv[++i]);
+        } else {
+            cerr << "Unknown or incomplete argument: " << argument << endl;
+            printHelp();
+            return 1;
+        }
+    }
+
+    if (inputFile.empty()) {
+        cout << "Enter input file name: ";
+        cin >> inputFile;
+    }
+
+    if (algorithm.empty()) {
+        cout << "Choose scheduling method:" << endl;
+        cout << "1. First Come, First Served" << endl;
+        cout << "2. Shortest Job First" << endl;
+        cout << "3. Priority Scheduling" << endl;
+        cout << "4. Round Robin" << endl;
+        cout << "5. No Scheduling" << endl;
+        cout << "Option: ";
+        cin >> algorithm;
+        algorithm = normalizeAlgorithmName(algorithm);
+    }
+
+    try {
+        vector<Process> processes = readProcesses(inputFile);
+        vector<Process> result;
+
+        if (algorithm == "fcfs") {
+            result = runFirstComeFirstServed(processes);
+        } else if (algorithm == "sjf") {
+            result = runShortestJobFirst(processes);
+        } else if (algorithm == "priority") {
+            result = runPriorityScheduling(processes);
+        } else if (algorithm == "rr") {
+            if (quantum <= 0) {
+                cout << "Enter Round Robin quantum: ";
+                cin >> quantum;
+            }
+            result = runRoundRobin(processes, quantum);
+        } else if (algorithm == "none") {
+            result = runNoScheduling(processes);
+        } else {
+            throw runtime_error("Unsupported scheduling algorithm: " + algorithm);
+        }
+
+        string methodName = displayNameForAlgorithm(algorithm, quantum);
+        printReport(result, methodName, cout);
+
+        if (!outputFile.empty()) {
+            ofstream output(outputFile.c_str());
+            if (!output.is_open()) {
+                throw runtime_error("Failed to open output file: " + outputFile);
+            }
+            printReport(result, methodName, output);
+        }
+    } catch (const exception& error) {
+        cerr << "Error: " << error.what() << endl;
+        return 1;
+    }
+
+    return 0;
+}
