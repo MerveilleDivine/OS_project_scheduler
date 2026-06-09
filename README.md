@@ -173,7 +173,7 @@ Algorithm                                 Avg Waiting       Avg Turnaround      
 First Come, First Served                  7.00              11.00               7.00
 Shortest Job First - Non-Preemptive       6.40              10.20               6.40
 Priority Scheduling - Non-Preemptive      6.40              10.20               6.40
-Round Robin - Quantum 2                   11.40             15.20               2.60
+Round Robin - Quantum 2                   11.40             15.20               3.00
 ```
 
 ---
