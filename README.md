@@ -2,6 +2,8 @@
 
 # CPU Scheduler Simulator
 
+![C++ CI](https://github.com/MerveilleDivine/OS_project_scheduler/actions/workflows/cpp-ci.yml/badge.svg)
+
 A C++ command-line simulator for comparing classic CPU scheduling algorithms and their process-level performance metrics.
 
 This project began as an **Operating Systems / CPE351 course project** and has been refactored into a cleaner engineering portfolio project with a structured source layout, CLI regression tests, CMake support, and GitHub Actions CI.
