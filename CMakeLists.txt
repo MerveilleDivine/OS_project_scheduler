@@ -6,10 +6,17 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_executable(scheduler scheduler.cpp)
+add_executable(scheduler
+    src/main.cpp
+    src/Parser.cpp
+    src/Scheduler.cpp
+    src/Reporter.cpp
+)
+
+target_include_directories(scheduler PRIVATE include)
 
 enable_testing()
 add_test(
     NAME scheduler_cli_regression_tests
-    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_cli_tests.sh
+    COMMAND ${CMAKE_COMMAND} -E env SCHEDULER_BINARY=$<TARGET_FILE:scheduler> bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_cli_tests.sh
 )
