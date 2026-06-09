@@ -1,0 +1,15 @@
+# Build outputs
+scheduler
+*.out
+*.exe
+*.o
+*.obj
+
+# Generated reports
+output.txt
+results.txt
+
+# Editor files
+.vscode/
+.idea/
+.DS_Store
