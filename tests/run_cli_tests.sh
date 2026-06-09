@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-BINARY="$ROOT_DIR/scheduler"
+BINARY="${SCHEDULER_BINARY:-$ROOT_DIR/scheduler}"
 INPUT_FILE="$ROOT_DIR/examples/sample_input.txt"
 
 assert_contains() {
@@ -35,14 +35,23 @@ assert_matches() {
     fi
 }
 
+build_if_needed() {
+    if [[ -x "$BINARY" ]]; then
+        return
+    fi
+
+    echo "Compiling scheduler..."
+    g++ -std=c++11 src/main.cpp src/Parser.cpp src/Scheduler.cpp src/Reporter.cpp -Iinclude -o scheduler
+    BINARY="$ROOT_DIR/scheduler"
+}
+
 run_scheduler() {
     local algorithm="$1"
     shift
     "$BINARY" -f "$INPUT_FILE" --algorithm "$algorithm" "$@"
 }
 
-echo "Compiling scheduler..."
-g++ -std=c++11 scheduler.cpp -o scheduler
+build_if_needed
 
 echo "Testing FCFS..."
 FCFS_OUTPUT="$(run_scheduler fcfs)"
@@ -52,6 +61,7 @@ assert_matches "$FCFS_OUTPUT" '^P2[[:space:]]+1[[:space:]]+4[[:space:]]+2[[:spac
 assert_matches "$FCFS_OUTPUT" '^P5[[:space:]]+3[[:space:]]+3[[:space:]]+1[[:space:]]+16[[:space:]]+19[[:space:]]+13[[:space:]]+16[[:space:]]+13' "FCFS P5 metrics"
 assert_contains "$FCFS_OUTPUT" "Average Waiting Time: 7.00 ms" "FCFS average waiting time"
 assert_contains "$FCFS_OUTPUT" "Average Turnaround Time: 11.00 ms" "FCFS average turnaround time"
+assert_contains "$FCFS_OUTPUT" "Gantt Chart:" "FCFS Gantt chart"
 
 FCFS_REPORT="$(mktemp)"
 "$BINARY" -f "$INPUT_FILE" -o "$FCFS_REPORT" --algorithm fcfs > /tmp/scheduler_fcfs_stdout.txt
@@ -78,6 +88,14 @@ RR_OUTPUT="$(run_scheduler rr --quantum 2)"
 assert_contains "$RR_OUTPUT" "Scheduling Method: Round Robin - Quantum 2" "Round Robin method name"
 assert_contains "$RR_OUTPUT" "Average Waiting Time: 11.40 ms" "Round Robin average waiting time"
 assert_contains "$RR_OUTPUT" "Average Turnaround Time: 15.20 ms" "Round Robin average turnaround time"
+assert_contains "$RR_OUTPUT" "Gantt Chart:" "Round Robin Gantt chart"
+
+
+echo "Testing comparison mode..."
+COMPARE_OUTPUT="$($BINARY -f "$INPUT_FILE" --compare --quantum 2)"
+assert_contains "$COMPARE_OUTPUT" "Scheduling Algorithm Comparison" "comparison title"
+assert_contains "$COMPARE_OUTPUT" "First Come, First Served" "comparison FCFS row"
+assert_contains "$COMPARE_OUTPUT" "Round Robin - Quantum 2" "comparison RR row"
 
 
 echo "Testing invalid quantum handling..."
