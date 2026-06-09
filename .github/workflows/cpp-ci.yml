@@ -22,7 +22,7 @@ jobs:
         run: g++ --version
 
       - name: Compile directly with g++
-        run: g++ -std=c++11 scheduler.cpp -o scheduler
+        run: g++ -std=c++11 src/main.cpp src/Parser.cpp src/Scheduler.cpp src/Reporter.cpp -Iinclude -o scheduler
 
       - name: Run CLI regression tests
         run: bash tests/run_cli_tests.sh
